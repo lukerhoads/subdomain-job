@@ -2,11 +2,6 @@
 #include <string>
 #include <cpr/cpr.h>
 
-size_t writeFunction(void *ptr, size_t size, size_t nmemb, std::string* data) {
-    data->append((char*) ptr, size * nmemb);
-    return size * nmemb;
-}
-
 int main(int argc, char *argv[])
 {
     std::cout << "Partitioning subdomains..." << std::endl;
@@ -26,8 +21,10 @@ int main(int argc, char *argv[])
         };
     }
 
-    auto r = cpr::Post(Url{"https://httpbin.org/post"}, Multipart{{"key", "long-string"}});
-    std::cout << r.text << std::endl;
+    cpr::Response r = cpr::Get(cpr::Url{"https://api.github.com/repos/whoshuu/cpr/contributors"},
+                      cpr::Authentication{"user", "pass"},
+                      cpr::Parameters{{"anon", "true"}, {"key", "value"}});
+    std::cout << r.status_code << std::endl;
 
     return 0;
 }
