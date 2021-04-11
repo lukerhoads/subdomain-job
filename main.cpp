@@ -3,7 +3,6 @@
 #include <stdio.h>
 #include <cpr/cpr.h>
 #include <ctime>
-#include <CkHttp.h>
 
 int main(int argc, char *argv[])
 {
@@ -11,7 +10,7 @@ int main(int argc, char *argv[])
 
     if (strlen(*argv) == 0) 
     { 
-        exit();
+        exit(400);
     };
 
     int* maxRetries;
@@ -19,6 +18,7 @@ int main(int argc, char *argv[])
     char* accessKey;
     char* secretKey;
     char* signature;
+    // MUST BE IPv4
     char* redirectLocation;
 
     for (int i = 1; i < argc; ++i)
@@ -48,7 +48,7 @@ int main(int argc, char *argv[])
     bool err = false;
     for (int i = 0; i < maxRetries; ++i) 
     {
-        bool err = makeRequest(hostedZone, accessKey, secretKey, signature)
+        bool err = createRecord(hostedZone, redirectLocation, accessKey, secretKey, signature)
         if (!err) 
         {
             break;
@@ -59,7 +59,13 @@ int main(int argc, char *argv[])
     return 0;
 }
 
-bool makeRequest(char* hostedZone, char* redirectLocation, char* accessKey, char* secretKey, char* signature) 
+// Gets the hostedzoneID with its doman/name
+char getHostedZoneId() {
+
+}
+
+// Creates the record with provided info
+bool createRecord(char* hostedZone, char* redirectLocation, char* accessKey, char* secretKey, char* signature) 
 {
     // Time preparation
     time_t now;
@@ -89,17 +95,19 @@ bool makeRequest(char* hostedZone, char* redirectLocation, char* accessKey, char
                 </Changes>
             </ChangeBatch>
         </ChangeResourceRecordSetsRequest>
-    ", hostedZone, );
+    ", hostedZone, redirectLocation);
     
     // Authentication preparation
-    const char *url = sprintf("https://route53.amazonaws.com/doc/2013-04-01/%s", hostedZone);
+    const char *url = sprintf("https://route53.amazonaws.com/doc/2013-04-01/hostedzone/%s/rrset/", hostedZone);
     const char *authorization = sprintf("AWS4-HMAC-SHA256 Credential=%s/20210409/us-east-1/route53/aws4_request, SignedHeaders=host;x-amz-date, Signature=%s", accessKey, signature);
     cpr::Response r = cpr::Post(
                     cpr::Url{url},
                     cpr::Header{
                         {"X-Amz-Date", buf}, // date now unix iso format
                         {"Authorization", authorization},
-                    });
+                        {"Content-type", "application/xml"} // or text/xml
+                    },
+                    cpr::Body{xmlStr});
     std::cout << r.text << std::endl;
 }
 
