@@ -1,5 +1,6 @@
 [requires]
 cpr/1.5.2
+rapidxml/1.13
 
 [generators]
 cmake

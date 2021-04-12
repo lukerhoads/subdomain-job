@@ -2,6 +2,7 @@
 #include <string>
 #include <stdio.h>
 #include <cpr/cpr.h>
+#include <rapidxml.h>
 #include <ctime>
 
 int main(int argc, char *argv[])
@@ -17,7 +18,6 @@ int main(int argc, char *argv[])
     char* hostedZoneName;
     char* accessKey;
     char* secretKey;
-    char* signature;
     char* redirectLocation; // IPv4 required
 
     for (int i = 1; i < argc; ++i)
@@ -35,10 +35,6 @@ int main(int argc, char *argv[])
             secretKey = argv[i];
         };
         if (i == 4)
-        {
-            signature = argv[i];
-        };
-        if (i == 5)
         {
             redirectLocation = argv[i];
         };
@@ -60,17 +56,29 @@ int main(int argc, char *argv[])
 }
 
 // Gets the hostedzoneID with its doman/name
-char* getHostedZoneId(char* hostedZoneName, char* accessKey, char* signature) 
+char* getHostedZoneId(char* hostedZoneName, char* accessKey) 
 {
+    // XML prep
+    xml_document<> doc
+    xml_node<> * root_node = NULL;
+
     // Time preparation
     time_t now;
     time(&now);
-    char buf[sizeof "2011-10-08T07:07:09Z"];
+    char* buf[sizeof "2011-10-08T07:07:09Z"];
     strftime(buf, sizeof buf, "%FT%TZ", gmtime(&now));
+
+    time_t theTime = time(NULL);
+    struct tm *aTime = localtime(&theTime);
+
+    const char* yearMonthDay = (char*)(aTime->tm_year + 1900) + (char*)(aTime->tm_mon + 1) + (char*)aTime->tm_mday;
+
+    // need request signing asap
+    const char* canonRequest = "GET /doc/2013-04-01/hostedzone\n \nx-amz-date:%s\nhost:route53.amazonaws.com\n"
 
     // Authentication preparation
     const char *url = "https://route53.amazonaws.com/doc/2013-04-01/hostedzone";
-    const char *authorization = sprintf("AWS4-HMAC-SHA256 Credential=%s/20210409/us-east-1/route53/aws4_request, SignedHeaders=host;x-amz-date, Signature=%s", accessKey, signature);
+    const char *authorization = sprintf("AWS4-HMAC-SHA256 Credential=%s/%s/us-east-1/route53/aws4_request, SignedHeaders=host;x-amz-date, Signature=%s", accessKey, yearMonthDay, signature);
 
     // Request constructing and execution (very simple with cpr)
     cpr::Response r = cpr::Get(
@@ -82,12 +90,26 @@ char* getHostedZoneId(char* hostedZoneName, char* accessKey, char* signature)
 
     if (r.status_code != 200) 
     {
-        std::cout << "No hosted zone with that name!" << std::endl;
+        std::cout << "Access error!" << std::endl;
         exit(1);
     };
 
     // Parse XML response, skipping truncation for now
-}
+    rapidxml.parse<0>(&r.text);
+    root_node = doc.first_node("HostedZones");
+
+    for (xml_node<> * hosted_node = root_node->first_node("HostedZone"); hosted_node; hosted_node = hosted_node->next_sibling())
+    {
+        for(xml_node<> * hosted_name_node = hosted_node->first_node("Name"); student_name_node; student_name_node = student_name_node->next_sibling())
+        {
+            if (hosted_name_node->value() == hostedZoneName)
+            {
+                std::cout << hosted_node->first_node("Id")->value() << std::endl;
+                return hosted_node->first_node("Id")->value();
+            };
+        }; 
+    };
+};
 
 // Creates the record with provided info
 bool createRecord(char* hostedZoneId, char* redirectLocation, char* accessKey, char* secretKey, char* signature) 
@@ -144,4 +166,4 @@ bool createRecord(char* hostedZoneId, char* redirectLocation, char* accessKey, c
 
     std::cout << "Success!" << std::endl;
     return true;
-}
+};
