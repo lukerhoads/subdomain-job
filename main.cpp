@@ -73,8 +73,20 @@ char* getHostedZoneId(char* hostedZoneName, char* accessKey)
 
     const char* yearMonthDay = (char*)(aTime->tm_year + 1900) + (char*)(aTime->tm_mon + 1) + (char*)aTime->tm_mday;
 
-    // need request signing asap
-    const char* canonRequest = "GET /doc/2013-04-01/hostedzone\n \nx-amz-date:%s\nhost:route53.amazonaws.com\n"
+    // canonical request string
+    const char* canonRequest = sprintf("
+        GET \n
+        /doc/2013-04-01/hostedzone\n
+        \n
+        content-type:application/xml
+        host:route53.amazonaws.com
+        x-amz-content:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
+        x-amz-date:%s\n
+        content-type;host;x-amz-date\n
+        e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855\n
+    ", buf)
+
+    // do i sha this canonical request string?
 
     // Authentication preparation
     const char *url = "https://route53.amazonaws.com/doc/2013-04-01/hostedzone";
